@@ -5,11 +5,15 @@ module.exports = function(grunt) {
 	var callback, silent;
 
 	function errorLog(error) {
+		var message;
+
 		if (!silent) {
-			callback(error);
+			message = error;
 		} else {
-			callback('Unspecified error (run without silent option for detail)');
+			message = 'Unspecified error (run without silent option for detail)';
 		}
+		grunt.fail.warn(message);
+		callback(false);
 	}
 
 	function updateExample(repo, options, done) {
@@ -53,15 +57,13 @@ module.exports = function(grunt) {
 		done = this.async();
 		callback = done;
 
-		silent = options.slient;
+		silent = options.silent;
 
 		if (options.repo) {
 			Git.clone(process.cwd(), options.repo)
 			.then(function(repo) {
 				return updateExample(repo, options, done);
-			}, function(err) {
-				done(err);
-			});
+			}, errorLog);
 		} else {
 			return updateExample(new Git(process.cwd()), options, done);
 		}
