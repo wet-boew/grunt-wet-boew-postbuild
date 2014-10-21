@@ -28,17 +28,28 @@ module.exports = function(grunt) {
 		.then(function(repo) {
 			return repo.exec('submodule', 'update', '--remote', '--init');
 		}, errorLog)
+		.then(function(){
+			return repo.exec('status');
+		})
 		.then(function(repo){
-			return repo.exec('add', '.');
+			if (!repo.lastCommand.stdout.match(/nothing to commit/)) {
+				return repo.exec('add', '.');
+			}
 		}, errorLog)
 		.then(function(repo){
-			return repo.exec('commit', '-m', options.message);
+			if (repo) {
+				return repo.exec('commit', '-m', options.message);
+			}
 		}, errorLog)
 		.then(function(repo){
-			return repo.exec('push', 'origin', branch);
+			if (repo) {
+				return repo.exec('push', 'origin', branch);
+			}
 		}, errorLog)
 		.then(function() {
-			return repo.exec('checkout', oldBranch);
+			if (repo) {
+				return repo.exec('checkout', oldBranch);
+			}
 		})
 		.then(function(){
 			done();

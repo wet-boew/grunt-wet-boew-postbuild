@@ -101,7 +101,7 @@ describe('Update Working Examples', function () {
 	describe('Same Repo', function() {
 		var message = 'Updated examples in origin repo',
 			branch = 'gh-pages',
-			commit;
+			commit, task;
 
 		before(function(done) {
 			this.timeout(9000);
@@ -141,7 +141,7 @@ describe('Update Working Examples', function () {
 				return cloneRepo.exec('push', distRepo.cwd, 'master');
 			}, error)
 			.then(function() {
-				var task = runTask.task('wb-update-examples', {
+				task = runTask.task('wb-update-examples', {
 					all: {
 						options: {
 							message: message
@@ -175,12 +175,23 @@ describe('Update Working Examples', function () {
 			}, error)
 			.then(null, error);
 		});
+
+		it('Finishes sucessfully when submodules are already up to date', function(done) {
+			task.run(function(err) {
+				try{
+					expect(err).to.be(undefined);
+					done();
+				} catch (err) {
+					done(err);
+				}
+			});
+		});
 	});
 
 	describe('External Repo', function(done) {
 		var message = 'Updated examples in other repo',
 			branch = 'master',
-			commit, examplesRepo;
+			commit, examplesRepo, task;
 
 		before(function(done) {
 			this.timeout(9000);
@@ -207,7 +218,7 @@ describe('Update Working Examples', function () {
 				return cloneRepo.exec('push', distRepo.cwd, 'master');
 			}, error)
 			.then(function() {
-				var task = runTask.task('wb-update-examples', {
+				task = runTask.task('wb-update-examples', {
 					all: {
 						options: {
 							message: message,
@@ -244,6 +255,21 @@ describe('Update Working Examples', function () {
 				done();
 			}, error)
 			.then(null, error);
+		});
+
+		it.skip('Removes existing clone if already exists', function(done) {
+			//TODO: Implement test and functionality
+		});
+
+		it.skip('Finishes sucessfully when submodules are already up to date', function(done) {
+			task.run(function(err) {
+				try{
+					expect(err).to.be(undefined);
+					done();
+				} catch (err) {
+					done(err);
+				}
+			});
 		});
 	});
 });
