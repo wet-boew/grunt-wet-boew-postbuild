@@ -59,30 +59,41 @@ describe('Update Working Examples', function () {
 	});
 
 	describe('Configuration', function() {
-		it('Fails if no message is specified', function() {
+		it('Fails if no message is specified', function(done) {
 			var task = runTask.task('wb-update-examples', {
 				all: {}
 			});
 
 			task.run(function(err){
-				expect(err).to.not.be(undefined);
-				expect(err).to.be('Mandatory option \'message\' not found.');
+				try{
+					expect(err).to.not.be(undefined);
+					expect(err).to.be('Mandatory option \'message\' not found.');
+					done();
+				} catch (err) {
+					return done(err);
+				}
 			});
 		});
 
-		it('Displays a generic error if the silent option is \'true\'', function() {
+		it('Displays a generic error if the silent option is \'true\'', function(done) {
 			var task = runTask.task('wb-update-examples', {
 				all: {
 					options: {
-						repo: 'non-existent',
+						repo: 'http://badurl.not',
+						message: 'Message',
 						silent: true
 					}
 				}
 			});
 
 			task.run(function(err){
-				expect(err).to.not.be(undefined);
-				expect(err).to.be('Unspecified error (run without silent option for detail');
+				try{
+					expect(err).to.not.be(undefined);
+					expect(err).to.be('Unspecified error (run without silent option for detail)');
+					done();
+				} catch (err) {
+					return done(err);
+				}
 			});
 		});
 	});
