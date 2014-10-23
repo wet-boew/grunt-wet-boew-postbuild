@@ -1,3 +1,4 @@
+var path = require('path');
 var Git = require('node-git-simple');
 
 module.exports = function(grunt) {
@@ -23,12 +24,19 @@ module.exports = function(grunt) {
 		repo.exec('branch')
 		.then(function(repo) {
 			oldBranch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
+			if (oldBranch === branch) {
+				return repo.exec('pull', 'origin', branch);
+			} else {
+				return repo.exec('fetch', '-f', 'origin', branch + ':' + branch);
+			}
+		}, errorLog)
+		.then(function(repo) {
 			return repo.exec('checkout', branch);
 		}, errorLog)
 		.then(function(repo) {
 			return repo.exec('submodule', 'update', '--remote', '--init');
 		}, errorLog)
-		.then(function(){
+		.then(function(repo){
 			return repo.exec('status');
 		})
 		.then(function(repo){
@@ -74,7 +82,16 @@ module.exports = function(grunt) {
 			Git.clone(process.cwd(), options.repo)
 			.then(function(repo) {
 				return updateExample(repo, options, done);
-			}, errorLog);
+			}, function(err) {
+				var matches = err.stderr.match(/destination path '(.*)' already exists/),
+					gitPath;
+
+				if (matches) {
+					gitPath = path.join(process.cwd(), matches[1]);
+					return updateExample(new Git(gitPath), options, done);
+				}
+				errorLog(err);
+			});
 		} else {
 			return updateExample(new Git(process.cwd()), options, done);
 		}

@@ -228,6 +228,8 @@ describe('Update Working Examples', function () {
 					}
 				});
 
+				task.grunt.file.setBase(cloneRepo.cwd);
+
 				task.run(function(err){
 					if (err) {
 						return done(err);
@@ -257,10 +259,6 @@ describe('Update Working Examples', function () {
 			.then(null, error);
 		});
 
-		it.skip('Removes existing clone if already exists', function(done) {
-			//TODO: Implement test and functionality
-		});
-
 		it.skip('Finishes sucessfully when submodules are already up to date', function(done) {
 			task.run(function(err) {
 				try{
@@ -270,6 +268,10 @@ describe('Update Working Examples', function () {
 					done(err);
 				}
 			});
+		});
+
+		it.skip('Updates examples if a clone already exist', function(done) {
+			//TODO: Implement test
 		});
 	});
 });
