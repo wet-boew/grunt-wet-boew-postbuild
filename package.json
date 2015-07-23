@@ -16,7 +16,7 @@
   },
   "homepage": "https://github.com/wet-boew/grunt-wet-boew-postbuild",
   "dependencies": {
-    "node-git-simple": "wet-boew/node-git-simple#v0.1.2"
+    "node-git-simple": "^0.1.2"
   },
   "devDependencies": {
     "expect.js": "^0.3.1",
