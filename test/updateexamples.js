@@ -15,6 +15,7 @@ describe('Update Working Examples', function () {
 		if (callback) {
 			callback(error);
 		}
+		throw error;
 	};
 
 	before(function(done){
