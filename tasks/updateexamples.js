@@ -3,7 +3,7 @@ var Git = require('node-git-simple');
 
 module.exports = function(grunt) {
 
-	var callback, silent;
+	var callback, silent, feedback;
 
 	function errorLog(error) {
 		var message;
@@ -34,9 +34,24 @@ module.exports = function(grunt) {
 			return repo.exec('checkout', branch);
 		}, errorLog)
 		.then(function(repo) {
-			return repo.exec('submodule', 'update', '--remote', '--init');
-		}, errorLog)
+			var promise = repo.exec('submodule', 'update', '--remote', '--init');
+
+			/* Travis CI cancels the build if no output is sent in a specific
+			 * time. Add some feedback that the task is still going.
+			 */
+			 if (silent) {
+				 feedback = setInterval(function() {
+					 grunt.log.write('.');
+				 }, 30000);
+			 }
+
+			 return promise;
+		}, function(error) {
+			clearInterval(feedback);
+		})
 		.then(function(repo){
+			clearInterval(feedback);
+
 			return repo.exec('status');
 		})
 		.then(function(repo){
