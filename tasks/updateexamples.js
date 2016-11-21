@@ -48,12 +48,13 @@ module.exports = function(grunt) {
 			 return promise;
 		}, function(error) {
 			clearInterval(feedback);
+			errorLog(error);
 		})
 		.then(function(repo){
 			clearInterval(feedback);
 
 			return repo.exec('status');
-		})
+		}, errorLog)
 		.then(function(repo){
 			if (!repo.lastCommand.stdout.match(/nothing to commit/)) {
 				return repo.exec('add', '.');
