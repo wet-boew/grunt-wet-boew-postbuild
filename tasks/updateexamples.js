@@ -73,7 +73,7 @@ module.exports = function(grunt) {
 			if (repo) {
 				return repo.exec('checkout', oldBranch);
 			}
-		})
+		}, errorLog)
 		.then(function(){
 			done();
 		});
