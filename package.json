@@ -1,6 +1,6 @@
 {
   "name": "grunt-wet-boew-postbuild",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "Grunt post build tasks for the Web Experience Toolkit",
   "scripts": {
     "test": "grunt test"
