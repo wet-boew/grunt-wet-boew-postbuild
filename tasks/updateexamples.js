@@ -3,25 +3,11 @@ var Git = require('node-git-simple');
 
 module.exports = function(grunt) {
 
-	var callback, silent, feedback;
-
-	function errorLog(error) {
-		var message;
-
-		if (!silent) {
-			message = error;
-		} else {
-			message = 'Unspecified error (run without silent option for detail)';
-		}
-		grunt.fail.warn(message);
-		callback(false);
-	}
-
-	function updateExample(repo, options, done) {
+	function updateExample(repo, options) {
 		var branch = options.branch || 'gh-pages',
-			oldBranch;
+			oldBranch, feedback;
 
-		repo.exec('branch')
+		return repo.exec('branch')
 		.then(function(repo) {
 			oldBranch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
 			if (oldBranch === branch) {
@@ -29,60 +15,64 @@ module.exports = function(grunt) {
 			} else {
 				return repo.exec('fetch', '-f', 'origin', branch + ':' + branch);
 			}
-		}, errorLog)
+		})
 		.then(function(repo) {
 			return repo.exec('checkout', branch);
-		}, errorLog)
+		})
 		.then(function(repo) {
 			var promise = repo.exec('submodule', 'update', '--remote', '--init');
-
-			/* Travis CI cancels the build if no output is sent in a specific
-			 * time. Add some feedback that the task is still going.
-			 */
-			 if (silent) {
-				 feedback = setInterval(function() {
-					 grunt.log.write('.');
-				 }, 30000);
-			 }
+			feedback = setInterval(function() {
+				grunt.log.write('.');
+			}, 30000);
 
 			 return promise;
-		}, function(error) {
-			clearInterval(feedback);
-			errorLog(error);
 		})
 		.then(function(repo){
-			clearInterval(feedback);
-
 			return repo.exec('status');
-		}, errorLog)
+		})
 		.then(function(repo){
 			if (!repo.lastCommand.stdout.match(/nothing to commit/)) {
 				return repo.exec('add', '.');
+			} else {
+				return null;
 			}
-		}, errorLog)
+		})
 		.then(function(repo){
 			if (repo) {
 				return repo.exec('commit', '-m', options.message);
 			}
-		}, errorLog)
+		})
 		.then(function(repo){
 			if (repo) {
 				return repo.exec('push', 'origin', branch);
 			}
-		}, errorLog)
+		})
 		.then(function() {
 			if (repo) {
 				return repo.exec('checkout', oldBranch);
 			}
-		}, errorLog)
+		})
 		.then(function(){
-			done();
+			return true;
+		})
+		.fin(function(){
+			clearInterval(feedback);
 		});
 
 	}
 
 	grunt.registerMultiTask('wb-update-examples', 'Update working examples', function () {
 		var options = this.options(),
+			errorLog = function(error) {
+				var message;
+
+				if (!options.silent) {
+					message = error;
+				} else {
+					message = 'Unspecified error (run without silent option for detail)';
+				}
+				grunt.fail.warn(message);
+			},
 			done;
 
 		if (!options.message){
@@ -90,14 +80,12 @@ module.exports = function(grunt) {
 		}
 
 		done = this.async();
-		callback = done;
-
-		silent = options.silent;
 
 		if (options.repo) {
 			Git.clone(process.cwd(), options.repo)
 			.then(function(repo) {
-				return updateExample(repo, options, done);
+				return updateExample(repo, options);
+
 			}, function(err) {
 				var matches = err.stderr.match(/destination path '(.*)' already exists/),
 					gitPath;
@@ -107,9 +95,14 @@ module.exports = function(grunt) {
 					return updateExample(new Git(gitPath), options, done);
 				}
 				errorLog(err);
-			});
+				done(false);
+			})
+			.fail(errorLog)
+			.done(done);
 		} else {
-			return updateExample(new Git(process.cwd()), options, done);
+			updateExample(new Git(process.cwd()), options)
+			.fail(errorLog)
+			.done(done);
 		}
 	});
 };

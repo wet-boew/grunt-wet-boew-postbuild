@@ -260,7 +260,7 @@ describe('Update Working Examples', function () {
 			.then(null, error);
 		});
 
-		it.skip('Finishes sucessfully when submodules are already up to date', function(done) {
+		it('Finishes sucessfully when submodules are already up to date', function(done) {
 			task.run(function(err) {
 				try{
 					expect(err).to.be(undefined);
