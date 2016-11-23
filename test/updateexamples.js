@@ -212,7 +212,7 @@ describe('Update Working Examples', function () {
 				return cloneRepo.exec('commit', '-m', 'My commit');
 			}, error)
 			.then(function() {
-				return cloneRepo.exec('rev-parse', branch);
+				return cloneRepo.exec('rev-parse', 'master');
 			})
 			.then(function(repo){
 				commit = cloneRepo.lastCommand.stdout.replace('\n', '');
