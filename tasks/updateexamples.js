@@ -62,11 +62,12 @@ module.exports = function(grunt) {
 	}
 
 	grunt.registerMultiTask('wb-update-examples', 'Update working examples', function () {
-		var options = this.options(),
+        var options = this.options(),
+            silent = options.silent || false,
 			errorLog = function(error) {
 				var message;
 
-				if (!options.silent) {
+				if (!silent) {
 					message = error;
 				} else {
 					message = 'Unspecified error (run without silent option for detail)';
@@ -74,6 +75,8 @@ module.exports = function(grunt) {
 				grunt.fail.warn(message);
 			},
 			done;
+
+        options.branch = options.branch || 'gh-pages';
 
         options.branch = options.branch || 'gh-pages';
 

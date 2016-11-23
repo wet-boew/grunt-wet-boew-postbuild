@@ -76,6 +76,27 @@ describe('Update Working Examples', function () {
 			});
 		});
 
+        it('Displays the underlying error if silent is not \'true\'', function(done) {
+			var task = runTask.task('wb-update-examples', {
+				all: {
+					options: {
+						repo: 'http://badurl.not',
+						message: 'Message',
+					}
+				}
+			});
+
+			task.run(function(err){
+				try{
+					expect(err).to.not.be(undefined);
+					expect(err).to.not.be('Unspecified error (run without silent option for detail)');
+					done();
+				} catch (err) {
+					return done(err);
+				}
+			});
+		});
+
 		it('Displays a generic error if the silent option is \'true\'', function(done) {
 			var task = runTask.task('wb-update-examples', {
 				all: {
