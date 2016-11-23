@@ -75,6 +75,8 @@ module.exports = function(grunt) {
 			},
 			done;
 
+        options.branch = options.branch || 'gh-pages';
+
 		if (!options.message){
 			return grunt.fail.warn('Mandatory option \'message\' not found.');
 		}
@@ -82,7 +84,7 @@ module.exports = function(grunt) {
 		done = this.async();
 
 		if (options.repo) {
-			Git.clone(process.cwd(), options.repo)
+			Git.clone(process.cwd(), options.repo, ['--single-branch', '--branch', options.branch])
 			.then(function(repo) {
 				return updateExample(repo, options);
 
