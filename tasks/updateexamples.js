@@ -4,29 +4,11 @@ var Git = require('node-git-simple');
 module.exports = function(grunt) {
 
 	function updateExample(repo, options) {
-		var branch = options.branch || 'gh-pages',
-			oldBranch, feedback;
+		var feedback = setInterval(function() {
+			grunt.log.write('.');
+		}, 30000);
 
-		return repo.exec('branch')
-		.then(function(repo) {
-			oldBranch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
-			if (oldBranch === branch) {
-				return repo.exec('pull', 'origin', branch);
-			} else {
-				return repo.exec('fetch', '-f', 'origin', branch + ':' + branch);
-			}
-		})
-		.then(function(repo) {
-			return repo.exec('checkout', branch);
-		})
-		.then(function(repo) {
-			var promise = repo.exec('submodule', 'update', '--remote', '--init');
-			feedback = setInterval(function() {
-				grunt.log.write('.');
-			}, 30000);
-
-			 return promise;
-		})
+		return repo.exec('submodule', 'update', '--remote', '--init');
 		.then(function(repo){
 			return repo.exec('status');
 		})
@@ -45,11 +27,6 @@ module.exports = function(grunt) {
 		.then(function(repo){
 			if (repo) {
 				return repo.exec('push', 'origin', branch);
-			}
-		})
-		.then(function() {
-			if (repo) {
-				return repo.exec('checkout', oldBranch);
 			}
 		})
 		.then(function(){
@@ -75,8 +52,6 @@ module.exports = function(grunt) {
 				grunt.fail.warn(message);
 			},
 			done;
-
-        options.branch = options.branch || 'gh-pages';
 
         options.branch = options.branch || 'gh-pages';
 
