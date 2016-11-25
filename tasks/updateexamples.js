@@ -5,10 +5,10 @@ module.exports = function(grunt) {
 
 	function updateExample(repo, options) {
 		var feedback = setInterval(function() {
-			grunt.log.write('.');
-		}, 30000);
+				grunt.log.write('.');
+			}, 30000);
 
-		return repo.exec('submodule', 'update', '--remote', '--init');
+		return repo.exec('submodule', 'update', '--remote', '--init')
 		.then(function(repo){
 			return repo.exec('status');
 		})
@@ -26,7 +26,7 @@ module.exports = function(grunt) {
 		})
 		.then(function(repo){
 			if (repo) {
-				return repo.exec('push', 'origin', branch);
+				return repo.exec('push', 'origin', options.branch);
 			}
 		})
 		.then(function(){
@@ -35,7 +35,30 @@ module.exports = function(grunt) {
 		.fin(function(){
 			clearInterval(feedback);
 		});
+	}
 
+	function updateExampleLocal(repo, options) {
+		var branch = options.branch,
+			oldBranch;
+
+		return repo.exec('branch')
+		.then(function(repo) {
+			oldBranch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
+			if (oldBranch === branch) {
+				return repo.exec('pull', 'origin', branch);
+			} else {
+				return repo.exec('fetch', '-f', 'origin', branch + ':' + branch);
+			}
+		})
+		.then(function(repo) {
+			return repo.exec('checkout', branch);
+		})
+		.then(function(repo) {
+			return updateExample(repo, options);
+		})
+		.fin(function() {
+			repo.exec('checkout', oldBranch);
+		});
 	}
 
 	grunt.registerMultiTask('wb-update-examples', 'Update working examples', function () {
@@ -65,22 +88,21 @@ module.exports = function(grunt) {
 			Git.clone(process.cwd(), options.repo, ['--single-branch', '--branch', options.branch])
 			.then(function(repo) {
 				return updateExample(repo, options);
-
 			}, function(err) {
 				var matches = err.stderr.match(/destination path '(.*)' already exists/),
 					gitPath;
 
 				if (matches) {
 					gitPath = path.join(process.cwd(), matches[1]);
-					return updateExample(new Git(gitPath), options, done);
+					return updateExample(new Git(gitPath), options);
 				}
 				errorLog(err);
-				done(false);
 			})
 			.fail(errorLog)
 			.done(done);
 		} else {
-			updateExample(new Git(process.cwd()), options)
+
+			updateExampleLocal(new Git(process.cwd()), options)
 			.fail(errorLog)
 			.done(done);
 		}

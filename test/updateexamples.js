@@ -198,6 +198,16 @@ describe('Update Working Examples', function () {
 			.then(null, error);
 		});
 
+        it('Checks out the initial branch after completion', function(done) {
+            coreRepo.exec('branch')
+            .then(function(repo) {
+                var branch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
+
+                expect(branch).to.be('master');
+            }, error)
+            .fin(done);
+        });
+
 		it('Finishes sucessfully when submodules are already up to date', function(done) {
 			task.run(function(err) {
 				try{
