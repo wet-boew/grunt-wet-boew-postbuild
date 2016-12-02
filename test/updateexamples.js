@@ -275,8 +275,6 @@ describe('Update Working Examples', function () {
 				return repo.exec('submodule');
 			})
 			.then(function(repo) {
-				console.log(repo.lastCommand.stdout);
-				console.log('commit: ' + commit);
 				expect(repo.lastCommand.stdout).to.contain(commit);
 				done();
 			})
