@@ -21,10 +21,6 @@ describe('Update Working Examples', function () {
 		Git.create(corePath, true)
 		.then(function(repo){
 			coreRepo = repo;
-			return Git.create(distPath, true);
-		})
-		.then(function(repo) {
-			distRepo = repo;
 			return Git.clone(rootPath, coreRepo.cwd, 'clone');
 		})
 		.then(function(repo) {
@@ -38,12 +34,20 @@ describe('Update Working Examples', function () {
 		.then(function() {
 			return cloneRepo.exec('commit', '-m', 'Initial commit');
 		})
-		.then(function(repo) {
-			cloneRepo.exec('push', distRepo.cwd, 'master');
+		.then(function() {
+			return cloneRepo.exec('push', 'origin', 'master');
 		})
-        .fin(function(e) {
-            done(e);
-        });
+		.then(function() {
+			return Git.create(distPath, true);
+		})
+		.then(function(repo) {
+			distRepo = repo;
+			return cloneRepo.exec('push', distRepo.cwd, 'master:gh-pages');
+		})
+		.then(function() {
+			done();
+		})
+		.fail(done);
 	});
 
 	after(function() {
@@ -67,7 +71,7 @@ describe('Update Working Examples', function () {
 			});
 		});
 
-        it('Displays the underlying error if silent is not \'true\'', function(done) {
+		it('Displays the underlying error if silent is not \'true\'', function(done) {
 			var task = runTask.task('wb-update-examples', {
 				all: {
 					options: {
@@ -124,7 +128,7 @@ describe('Update Working Examples', function () {
 				return cloneRepo.exec('rm', '-rf', '.');
 			})
 			.then(function() {
-				return cloneRepo.exec('submodule', 'add', distRepo.cwd, 'dist');
+				return cloneRepo.exec('submodule', 'add', '-b', branch, '-f', distRepo.cwd, 'dist');
 			})
 			.then(function() {
 				return cloneRepo.exec('add', '.');
@@ -164,18 +168,21 @@ describe('Update Working Examples', function () {
 				task.grunt.file.setBase(cloneRepo.cwd);
 				task.run(done);
 			})
-            .fail(done);
+			.fail(function(err) {
+				console.log(err);
+				done(err);
+			});
 		});
 
 		it('Checks out the initial branch after completion', function(done) {
-            cloneRepo.exec('branch')
-            .then(function(repo) {
-                var branch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
-                expect(branch).to.be('master');
-                done();
-            })
-            .fail(done);
-        });
+			cloneRepo.exec('branch')
+			.then(function(repo) {
+				var branch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
+				expect(branch).to.be('master');
+				done();
+			})
+			.fail(done);
+		});
 
 		it('Updated the submodules', function(done){
 			cloneRepo.exec('fetch', coreRepo.cwd, branch + ':test-local')
@@ -187,12 +194,12 @@ describe('Update Working Examples', function () {
 			})
 			.then(function(repo) {
 				expect(repo.lastCommand.stdout).to.contain(commit + ' dist');
-                done();
+				done();
 			})
-            .fail(done)
-            .fin(function() {
-                cloneRepo.exec('checkout', 'master');
-            });
+			.fail(done)
+			.fin(function() {
+				cloneRepo.exec('checkout', 'master');
+			});
 		});
 
 		it('Finishes sucessfully when submodules are already up to date', function(done) {
@@ -209,7 +216,7 @@ describe('Update Working Examples', function () {
 
 	describe('External Repo', function(done) {
 		var message = 'Updated examples in other repo',
-			branch = 'gh-pages',
+			branch = 'master',
 			commit, examplesRepo, task;
 
 		before(function(done) {
@@ -251,7 +258,7 @@ describe('Update Working Examples', function () {
 
 				task.run(done);
 			})
-            .fail(done);
+			.fail(done);
 
 		});
 
@@ -260,7 +267,7 @@ describe('Update Working Examples', function () {
 		});
 
 		it('Updated the submodules', function(done){
-			cloneRepo.exec('fetch', coreRepo.cwd, branch + ':test-remote')
+			cloneRepo.exec('fetch', examplesRepo.cwd, branch + ':test-remote')
 			.then(function(repo) {
 				return repo.exec('checkout', 'test-remote');
 			})
@@ -268,15 +275,15 @@ describe('Update Working Examples', function () {
 				return repo.exec('submodule');
 			})
 			.then(function(repo) {
-                console.log(repo.lastCommand.stdout);
-                console.log('commit: ' + commit);
+				console.log(repo.lastCommand.stdout);
+				console.log('commit: ' + commit);
 				expect(repo.lastCommand.stdout).to.contain(commit);
-                done();
+				done();
 			})
-            .fail(done)
-            .fin(function() {
-                cloneRepo.exec('checkout', 'master');
-            });
+			.fail(done)
+			.fin(function() {
+				cloneRepo.exec('checkout', 'master');
+			});
 		});
 
 		it('Finishes sucessfully when submodules are already up to date', function(done) {
