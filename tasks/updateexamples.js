@@ -100,11 +100,11 @@ module.exports = function(grunt) {
 				}
 			})
 			.then(done)
-			.fail(done);
+			.fail(errorLog);
 		} else {
 			updateExampleLocal(new Git(process.cwd()), options)
 			.then(done)
-			.fail(done);
+			.fail(errorLog);
 		}
 	});
 };
