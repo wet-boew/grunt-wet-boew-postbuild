@@ -27,9 +27,7 @@ describe('Update Working Examples', function () {
 			cloneRepo = repo;
 			testFile = path.join(repo.cwd, 'test');
 			fs.writeFileSync(testFile, 'test');
-		})
-		.then(function() {
-			return cloneRepo.exec('add', '.');
+			return cloneRepo.exec('add', 'test');
 		})
 		.then(function() {
 			return cloneRepo.exec('commit', '-m', 'Initial commit');
@@ -81,6 +79,7 @@ describe('Update Working Examples', function () {
 				}
 			});
 
+
 			task.run(function(err){
 				try{
 					expect(err).to.not.be(undefined);
@@ -90,6 +89,7 @@ describe('Update Working Examples', function () {
 					return done(err);
 				}
 			});
+
 		});
 
 		it('Displays a generic error if the silent option is \'true\'', function(done) {
@@ -143,8 +143,11 @@ describe('Update Working Examples', function () {
 				return cloneRepo.exec('checkout', 'master');
 			})
 			.then(function() {
+				return cloneRepo.exec('branch', '-D', branch);
+			})
+			.then(function() {
 				fs.writeFileSync(testFile, 'test2');
-				return cloneRepo.exec('add', '.');
+				return cloneRepo.exec('add', 'test');
 			})
 			.then(function() {
 				return cloneRepo.exec('commit', '-m', 'Changed file');
@@ -154,7 +157,7 @@ describe('Update Working Examples', function () {
 			})
 			.then(function() {
 				commit = cloneRepo.lastCommand.stdout.replace('\n', '');
-				return cloneRepo.exec('push', distRepo.cwd, 'master');
+				return cloneRepo.exec('push', distRepo.cwd, 'master:gh-pages');
 			})
 			.then(function() {
 				task = runTask.task('wb-update-examples', {
@@ -168,10 +171,7 @@ describe('Update Working Examples', function () {
 				task.grunt.file.setBase(cloneRepo.cwd);
 				task.run(done);
 			})
-			.fail(function(err) {
-				console.log(err);
-				done(err);
-			});
+			.fail(done);
 		});
 
 		it('Checks out the initial branch after completion', function(done) {
@@ -231,7 +231,7 @@ describe('Update Working Examples', function () {
 			})
 			.then(function() {
 				fs.writeFileSync(testFile, 'test3');
-				return cloneRepo.exec('add', '.');
+				return cloneRepo.exec('add', 'test');
 			})
 			.then(function(){
 				return cloneRepo.exec('commit', '-m', 'My commit');
@@ -241,7 +241,7 @@ describe('Update Working Examples', function () {
 			})
 			.then(function(repo){
 				commit = cloneRepo.lastCommand.stdout.replace('\n', '');
-				return cloneRepo.exec('push', distRepo.cwd, 'master');
+				return cloneRepo.exec('push', distRepo.cwd, 'master:gh-pages');
 			})
 			.then(function() {
 				task = runTask.task('wb-update-examples', {
@@ -270,6 +270,9 @@ describe('Update Working Examples', function () {
 			cloneRepo.exec('fetch', examplesRepo.cwd, branch + ':test-remote')
 			.then(function(repo) {
 				return repo.exec('checkout', 'test-remote');
+			})
+			.then(function(repo) {
+				return repo.exec('submodule', 'update', '--init');
 			})
 			.then(function(repo) {
 				return repo.exec('submodule');

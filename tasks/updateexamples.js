@@ -10,10 +10,12 @@ module.exports = function(grunt) {
 
 		return repo.exec('submodule', 'update', '--remote', '--init')
 		.then(function(repo){
-			return repo.exec('status');
+			if(repo) {
+				return repo.exec('status');
+			}
 		})
 		.then(function(repo){
-			if (!repo.lastCommand.stdout.match(/nothing to commit/)) {
+			if (repo && !repo.lastCommand.stdout.match(/nothing to commit/)) {
 				return repo.exec('add', '.');
 			} else {
 				return null;
@@ -29,7 +31,7 @@ module.exports = function(grunt) {
 				return repo.exec('push', 'origin', options.branch);
 			}
 		})
-		.fin(function(){
+		.then(function(){
 			clearInterval(feedback);
 		});
 	}
@@ -53,23 +55,25 @@ module.exports = function(grunt) {
 		.then(function(repo) {
 			return updateExample(repo, options);
 		})
-		.fin(function() {
-			repo.exec('checkout', oldBranch);
+		.then(function() {
+			if (oldBranch !== branch) {
+				repo.exec('checkout', oldBranch);
+			}
 		});
 	}
 
 	grunt.registerMultiTask('wb-update-examples', 'Update working examples', function () {
-        var options = this.options(),
-            silent = options.silent || false,
+		var options = this.options(),
+			silent = options.silent || false,
 			errorLog = function(error) {
 				if (silent) {
 					error = new Error('Unspecified error (run without silent option for detail)');
 				}
-                grunt.fail.warn(error.message);
+				grunt.fail.warn(error.message);
 			},
 			done;
 
-        options.branch = options.branch || 'gh-pages';
+		options.branch = options.branch || 'gh-pages';
 
 		if (!options.message){
 			return grunt.fail.warn('Mandatory option \'message\' not found.');
@@ -79,35 +83,28 @@ module.exports = function(grunt) {
 
 		if (options.repo) {
 			Git.clone(process.cwd(), options.repo, ['--single-branch', '--branch', options.branch])
-            .fail(function(err) {
+			.fail(function(err) {
 				var matches, gitPath;
 				if (err.stderr) {
-                    matches = err.stderr.match(/destination path '(.*)' already exists/);
-                    if (matches) {
-                        gitPath = path.join(process.cwd(), matches[1]);
-                        return new Git(gitPath);
-                    }
+					matches = err.stderr.match(/destination path '(.*)' already exists/);
+					if (matches) {
+						gitPath = path.join(process.cwd(), matches[1]);
+						return new Git(gitPath);
+					}
 				}
 				errorLog(err);
-            })
-			.then(function(repo) {
-				return updateExample(repo, options);
 			})
-			.fin(function(e) {
-                if (e) {
-                    errorLog(e);
-                }
-                done();
-            });
+			.then(function(repo) {
+				if (repo) {
+					return updateExample(repo, options);
+				}
+			})
+			.then(done)
+			.fail(done);
 		} else {
-
 			updateExampleLocal(new Git(process.cwd()), options)
-            .fin(function(e) {
-                if (e) {
-                    errorLog(e);
-                }
-                done();
-            });
+			.then(done)
+			.fail(done);
 		}
 	});
 };
