@@ -29,9 +29,6 @@ module.exports = function(grunt) {
 				return repo.exec('push', 'origin', options.branch);
 			}
 		})
-		.then(function(){
-			return true;
-		})
 		.fin(function(){
 			clearInterval(feedback);
 		});
@@ -65,14 +62,10 @@ module.exports = function(grunt) {
         var options = this.options(),
             silent = options.silent || false,
 			errorLog = function(error) {
-				var message;
-
-				if (!silent) {
-					message = error;
-				} else {
-					message = 'Unspecified error (run without silent option for detail)';
+				if (silent) {
+					error = new Error('Unspecified error (run without silent option for detail)');
 				}
-				grunt.fail.warn(message);
+                grunt.fail.warn(error.message);
 			},
 			done;
 
@@ -86,25 +79,35 @@ module.exports = function(grunt) {
 
 		if (options.repo) {
 			Git.clone(process.cwd(), options.repo, ['--single-branch', '--branch', options.branch])
-			.then(function(repo) {
-				return updateExample(repo, options);
-			}, function(err) {
-				var matches = err.stderr.match(/destination path '(.*)' already exists/),
-					gitPath;
-
-				if (matches) {
-					gitPath = path.join(process.cwd(), matches[1]);
-					return updateExample(new Git(gitPath), options);
+            .fail(function(err) {
+				var matches, gitPath;
+				if (err.stderr) {
+                    matches = err.stderr.match(/destination path '(.*)' already exists/);
+                    if (matches) {
+                        gitPath = path.join(process.cwd(), matches[1]);
+                        return new Git(gitPath);
+                    }
 				}
 				errorLog(err);
+            })
+			.then(function(repo) {
+				return updateExample(repo, options);
 			})
-			.fail(errorLog)
-			.done(done);
+			.fin(function(e) {
+                if (e) {
+                    errorLog(e);
+                }
+                done();
+            });
 		} else {
 
 			updateExampleLocal(new Git(process.cwd()), options)
-			.fail(errorLog)
-			.done(done);
+            .fin(function(e) {
+                if (e) {
+                    errorLog(e);
+                }
+                done();
+            });
 		}
 	});
 };
