@@ -9,18 +9,9 @@ describe('Update Working Examples', function () {
 		corePath = path.join(rootPath, 'core'),
 		distPath = path.join(rootPath, 'dist'),
 		examplesPath = path.join(process.cwd(), rootPath, 'examples'),
-		coreRepo, distRepo, cloneRepo, callback, testFile, cwd;
-
-	var error = function(error) {
-		if (callback) {
-			callback(error);
-		}
-		throw error;
-	};
+		coreRepo, distRepo, cloneRepo, cwd, testFile;
 
 	before(function(done){
-		callback = done;
-
 		cwd = process.cwd();
 
 		fs.mkdirSync(rootPath);
@@ -31,28 +22,28 @@ describe('Update Working Examples', function () {
 		.then(function(repo){
 			coreRepo = repo;
 			return Git.create(distPath, true);
-		}, error)
+		})
 		.then(function(repo) {
 			distRepo = repo;
 			return Git.clone(rootPath, coreRepo.cwd, 'clone');
-		}, error)
+		})
 		.then(function(repo) {
 			cloneRepo = repo;
 			testFile = path.join(repo.cwd, 'test');
 			fs.writeFileSync(testFile, 'test');
-		}, error)
+		})
 		.then(function() {
 			return cloneRepo.exec('add', '.');
-		}, error)
+		})
 		.then(function() {
 			return cloneRepo.exec('commit', '-m', 'Initial commit');
-		}, error)
+		})
 		.then(function(repo) {
-			return cloneRepo.exec('push', distRepo.cwd, 'master');
-		}, error)
-		.then(function() {
-			done();
-		}, error);
+			cloneRepo.exec('push', distRepo.cwd, 'master');
+		})
+        .fin(function(e) {
+            done(e);
+        });
 	});
 
 	after(function() {
@@ -127,7 +118,6 @@ describe('Update Working Examples', function () {
 
 		before(function(done) {
 			this.timeout(9000);
-			callback = done;
 
 			cloneRepo.exec('checkout', '--orphan', branch)
 			.then(function(){
@@ -135,33 +125,33 @@ describe('Update Working Examples', function () {
 			})
 			.then(function() {
 				return cloneRepo.exec('submodule', 'add', distRepo.cwd, 'dist');
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('add', '.');
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('commit', '-m', 'Added submodule');
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('push', coreRepo.cwd, branch);
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('checkout', 'master');
-			}, error)
+			})
 			.then(function() {
 				fs.writeFileSync(testFile, 'test2');
 				return cloneRepo.exec('add', '.');
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('commit', '-m', 'Changed file');
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('rev-parse', 'master');
 			})
 			.then(function() {
 				commit = cloneRepo.lastCommand.stdout.replace('\n', '');
 				return cloneRepo.exec('push', distRepo.cwd, 'master');
-			}, error)
+			})
 			.then(function() {
 				task = runTask.task('wb-update-examples', {
 					all: {
@@ -172,41 +162,38 @@ describe('Update Working Examples', function () {
 				});
 
 				task.grunt.file.setBase(cloneRepo.cwd);
-
-				task.run(function(err){
-					if (err) {
-						return done(err);
-					}
-					done();
-				});
-			}, error);
-
+				task.run(done);
+			})
+            .fail(done);
 		});
 
-		it('Updated the submodules', function(done){
-			callback = done;
-
-			coreRepo.exec('log', branch + '~1..' + branch)
-			.then(function(repo) {
-				expect(repo.lastCommand.stdout).to.contain(message);
-				return repo.exec('ls-tree', branch);
-			}, error)
-			.then(function(repo) {
-				expect(repo.lastCommand.stdout).to.contain('commit ' + commit);
-				done();
-			}, error)
-			.then(null, error);
-		});
-
-        it('Checks out the initial branch after completion', function(done) {
-            coreRepo.exec('branch')
+		it('Checks out the initial branch after completion', function(done) {
+            cloneRepo.exec('branch')
             .then(function(repo) {
                 var branch = repo.lastCommand.stdout.match(/\*\s*([^\n]*)/)[1];
-
                 expect(branch).to.be('master');
-            }, error)
-            .fin(done);
+                done();
+            })
+            .fail(done);
         });
+
+		it('Updated the submodules', function(done){
+			cloneRepo.exec('fetch', coreRepo.cwd, branch + ':test-local')
+			.then(function(repo) {
+				return repo.exec('checkout', 'test-local');
+			})
+			.then(function(repo){
+				return repo.exec('submodule');
+			})
+			.then(function(repo) {
+				expect(repo.lastCommand.stdout).to.contain(commit + ' dist');
+                done();
+			})
+            .fail(done)
+            .fin(function() {
+                cloneRepo.exec('checkout', 'master');
+            });
+		});
 
 		it('Finishes sucessfully when submodules are already up to date', function(done) {
 			task.run(function(err) {
@@ -222,7 +209,7 @@ describe('Update Working Examples', function () {
 
 	describe('External Repo', function(done) {
 		var message = 'Updated examples in other repo',
-			branch = 'master',
+			branch = 'gh-pages',
 			commit, examplesRepo, task;
 
 		before(function(done) {
@@ -234,21 +221,21 @@ describe('Update Working Examples', function () {
 			.then(function(repo) {
 				examplesRepo = repo;
 				return coreRepo.exec('push', examplesRepo.cwd, 'gh-pages:' + branch);
-			}, error)
+			})
 			.then(function() {
 				fs.writeFileSync(testFile, 'test3');
 				return cloneRepo.exec('add', '.');
-			}, error)
+			})
 			.then(function(){
 				return cloneRepo.exec('commit', '-m', 'My commit');
-			}, error)
+			})
 			.then(function() {
 				return cloneRepo.exec('rev-parse', 'master');
 			})
 			.then(function(repo){
 				commit = cloneRepo.lastCommand.stdout.replace('\n', '');
 				return cloneRepo.exec('push', distRepo.cwd, 'master');
-			}, error)
+			})
 			.then(function() {
 				task = runTask.task('wb-update-examples', {
 					all: {
@@ -262,13 +249,9 @@ describe('Update Working Examples', function () {
 
 				task.grunt.file.setBase(cloneRepo.cwd);
 
-				task.run(function(err){
-					if (err) {
-						return done(err);
-					}
-					done();
-				});
-			}, error);
+				task.run(done);
+			})
+            .fail(done);
 
 		});
 
@@ -277,29 +260,27 @@ describe('Update Working Examples', function () {
 		});
 
 		it('Updated the submodules', function(done){
-			callback = done;
-
-			examplesRepo.exec('log', branch + '~1..' + branch)
+			cloneRepo.exec('fetch', coreRepo.cwd, branch + ':test-remote')
 			.then(function(repo) {
-				expect(repo.lastCommand.stdout).to.contain(message);
-				return repo.exec('ls-tree', branch);
-			}, error)
+				return repo.exec('checkout', 'test-remote');
+			})
 			.then(function(repo) {
-				expect(repo.lastCommand.stdout).to.contain('commit ' + commit);
-				done();
-			}, error)
-			.then(null, error);
+				return repo.exec('submodule');
+			})
+			.then(function(repo) {
+                console.log(repo.lastCommand.stdout);
+                console.log('commit: ' + commit);
+				expect(repo.lastCommand.stdout).to.contain(commit);
+                done();
+			})
+            .fail(done)
+            .fin(function() {
+                cloneRepo.exec('checkout', 'master');
+            });
 		});
 
 		it('Finishes sucessfully when submodules are already up to date', function(done) {
-			task.run(function(err) {
-				try{
-					expect(err).to.be(undefined);
-					done();
-				} catch (err) {
-					done(err);
-				}
-			});
+			task.run(done);
 		});
 
 		it.skip('Updates examples if a clone already exist', function(done) {
