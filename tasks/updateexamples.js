@@ -96,7 +96,7 @@ module.exports = function(grunt) {
 			})
 			.then(function(repo) {
 				if (repo) {
-					return updateExample(repo, options);
+					return updateExampleLocal(repo, options);
 				}
 			})
 			.then(done)
